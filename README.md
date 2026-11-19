@@ -8,7 +8,7 @@ Have a notes window with instructions set up. Upon closing the notes window, a t
 ### Windows:
 Run this command in PowerShell:
 ```bash
-powershell -ExecutionPolicy Bypass -File .\WindowsSettingTask.ps1
+powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
 
 ### Mac: 
