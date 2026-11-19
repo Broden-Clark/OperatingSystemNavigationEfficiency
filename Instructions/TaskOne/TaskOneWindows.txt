@@ -1,4 +1,4 @@
-Task One (Settings)
+Task One (Windows/Settings)
 
 This task is timed. The timer will start upon closing this window and end upon completion of the task.
 
