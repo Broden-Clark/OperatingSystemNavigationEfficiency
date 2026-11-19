@@ -1,6 +1,6 @@
-# OperatingSystemNavigationEfficiency
+# Operating System Navigation Efficiency
 
-## How to Use (Mac/Window Setting Task)
+## How to Use (Mac/Window Task One)
 Have a notes window with instructions set up. Upon closing the notes window, a timer will start. Upon opening settings the timer will end and the time will be stored in the respective settings_task.csv. 
 
 ## Setup
