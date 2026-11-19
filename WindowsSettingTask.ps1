@@ -1,58 +1,75 @@
 # WindowsSettingTask.ps1
 # Start timer when "Notes" closes; stop when "Settings" opens.
 
-$StartTrigger = "Notes"
-$StopTrigger  = "Settings"
-$CsvPath      = Join-Path $PSScriptRoot "windows_settings_results.csv"
-$Header       = "participant,elapsed_seconds"
-
-function Get-VisibleTitles {
-    Get-Process | Where-Object { $_.MainWindowTitle -ne "" } |
-        Select-Object -ExpandProperty MainWindowTitle
-}
-
-function Test-TitlePresent([string]$needle) {
-    (Get-VisibleTitles) -match [regex]::Escape($needle) | ForEach-Object { return $true }
-    return $false
-}
-
-$notesWasVisible    = Test-TitlePresent $StartTrigger
-$settingsWasVisible = Test-TitlePresent $StopTrigger
-$startTime = $null
-$timerRunning = $false
-
-Write-Host "Watching for '$StartTrigger' to close and '$StopTrigger' to open."
-Write-Host "CSV: $CsvPath"
-
-while ($true) {
-    $notesVisible    = Test-TitlePresent $StartTrigger
-    $settingsVisible = Test-TitlePresent $StopTrigger
-
-    if ($notesWasVisible -and -not $notesVisible -and -not $timerRunning) {
-        $startTime = [System.Diagnostics.Stopwatch]::StartNew()
-        $timerRunning = $true
-        Write-Host "$(Get-Date -Format HH:mm:ss) Notes closed - timer STARTED"
+$scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+$csvPath      = Join-Path $scriptFolder 'task_one_windows_results.csv'
+$participantNumber = 1
+if (Test-Path $csvPath) {
+    $existingContent = Get-Content -LiteralPath $csvPath -ErrorAction SilentlyContinue
+    if ($null -ne $existingContent) {
+        # Get-Content returns an array of lines; a single line returns a string
+        $lineCount = @($existingContent).Count
+        $participantNumber = $lineCount   # header counted, same as original
     }
+}
 
-    if ($settingsVisible -and -not $settingsWasVisible -and $timerRunning) {
-        $startTime.Stop()
-        $elapsed = [math]::Round($startTime.Elapsed.TotalSeconds, 3)
-        $timerRunning = $false
+Write-Host "Participant #$participantNumber  (CSV: $csvPath)"
 
-        # participant = line count (header included), like the AppleScript
-        if (Test-Path $CsvPath) {
-            $lines = @(Get-Content $CsvPath)
-            $participant = $lines.Count
-        } else {
-            Set-Content -Path $CsvPath -Value $Header -Encoding UTF8
-            $participant = 1
+# ---------- Helpers ----------
+$stopwatch = [System.Diagnostics.Stopwatch]::new()
+$started   = $false
+
+function Wait-ForProcessEvent {
+    param(
+        [string]$ClassName,      # Win32_ProcessStartTrace or Win32_ProcessStopTrace
+        [string]$ProcessName,    # e.g. 'notepad.exe', 'SystemSettings.exe'
+        [int]$TimeoutSeconds = 0 # 0 = wait forever
+    )
+    $query = "SELECT * FROM $ClassName WHERE ProcessName = '$ProcessName'"
+    if ($TimeoutSeconds -gt 0) {
+        $watcher = Register-CimIndicationEvent -Query $query -SourceIdentifier "w_$ProcessName" -ErrorAction Stop
+        try {
+            $evt = Wait-Event -SourceIdentifier "w_$ProcessName" -Timeout $TimeoutSeconds
+            if ($evt) { return $true } else { return $false }
+        } finally {
+            Unregister-Event -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
+            Remove-Event      -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
         }
-
-        Add-Content -Path $CsvPath -Value "$participant,$elapsed" -Encoding UTF8
-        Write-Host "$(Get-Date -Format HH:mm:ss) Participant $participant - Elapsed: $elapsed seconds"
+    } else {
+        Register-CimIndicationEvent -Query $query -SourceIdentifier "w_$ProcessName" | Out-Null
+        try {
+            Wait-Event -SourceIdentifier "w_$ProcessName" | Out-Null
+            return $true
+        } finally {
+            Unregister-Event -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
+            Remove-Event      -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
+        }
     }
-
-    $notesWasVisible    = $notesVisible
-    $settingsWasVisible = $settingsVisible
-    Start-Sleep -Milliseconds 250
 }
+
+# Start timer when Notes closes
+Write-Host "Waiting for Notes (notepad.exe) to close to start the timer..."
+Wait-ForProcessEvent -ClassName 'Win32_ProcessStopTrace' -ProcessName 'notepad.exe' | Out-Null
+
+$stopwatch.Start()
+$started = $true
+Write-Host ("Timer STARTED at {0:HH:mm:ss.fff}" -f (Get-Date))
+
+# Stop timer when Settings opens
+Write-Host "Waiting for Settings (SystemSettings.exe) to open to stop the timer..."
+Wait-ForProcessEvent -ClassName 'Win32_ProcessStartTrace' -ProcessName 'SystemSettings.exe' | Out-Null
+
+$stopwatch.Stop()
+$elapsedTime = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
+Write-Host ("Timer STOPPED at {0:HH:mm:ss.fff}  — elapsed: {1} s" -f (Get-Date), $elapsedTime)
+
+# Append the result row
+if (-not (Test-Path $csvPath)) {
+    'Participant #, Time to Complete' | Out-File -LiteralPath $csvPath -Encoding UTF8
+}
+
+# Original built "Participant N  –  Elapsed: X seconds (saved to <csv>)"
+# and appended it as a new row. We mirror the row shape: participantNumber,elapsedTime
+"$participantNumber,$elapsedTime" | Out-File -LiteralPath $csvPath -Encoding UTF8 -Append
+
+Write-Host "Saved row -> $csvPath"

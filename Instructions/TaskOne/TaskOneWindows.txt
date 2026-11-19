@@ -1,0 +1,5 @@
+Task One (Settings)
+
+This task is timed. The timer will start upon closing this window and end upon completion of the task.
+
+When you close this tab, you will be on the Windows desktop; please navigate to the settings as quickly as you can.
