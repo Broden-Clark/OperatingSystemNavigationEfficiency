@@ -7,7 +7,6 @@ $participantNumber = 1
 if (Test-Path $csvPath) {
     $existingContent = Get-Content -LiteralPath $csvPath -ErrorAction SilentlyContinue
     if ($null -ne $existingContent) {
-        # Get-Content returns an array of lines; a single line returns a string
         $lineCount = @($existingContent).Count
         $participantNumber = $lineCount   # header counted, same as original
     }
@@ -15,9 +14,8 @@ if (Test-Path $csvPath) {
 
 Write-Host "Participant #$participantNumber  (CSV: $csvPath)"
 
-# ---------- Helpers ----------
+# Helpers
 $stopwatch = [System.Diagnostics.Stopwatch]::new()
-$started   = $false
 
 function Wait-ForProcessEvent {
     param(
@@ -26,24 +24,19 @@ function Wait-ForProcessEvent {
         [int]$TimeoutSeconds = 0 # 0 = wait forever
     )
     $query = "SELECT * FROM $ClassName WHERE ProcessName = '$ProcessName'"
-    if ($TimeoutSeconds -gt 0) {
-        $watcher = Register-CimIndicationEvent -Query $query -SourceIdentifier "w_$ProcessName" -ErrorAction Stop
-        try {
-            $evt = Wait-Event -SourceIdentifier "w_$ProcessName" -Timeout $TimeoutSeconds
-            if ($evt) { return $true } else { return $false }
-        } finally {
-            Unregister-Event -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
-            Remove-Event      -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
-        }
-    } else {
-        Register-CimIndicationEvent -Query $query -SourceIdentifier "w_$ProcessName" | Out-Null
-        try {
-            Wait-Event -SourceIdentifier "w_$ProcessName" | Out-Null
+    $sid = "w_$ProcessName"
+    Register-CimIndicationEvent -Query $query -SourceIdentifier $sid | Out-Null
+    try {
+        if ($TimeoutSeconds -gt 0) {
+            $evt = Wait-Event -SourceIdentifier $sid -Timeout $TimeoutSeconds
+            return [bool]$evt
+        } else {
+            Wait-Event -SourceIdentifier $sid | Out-Null
             return $true
-        } finally {
-            Unregister-Event -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
-            Remove-Event      -SourceIdentifier "w_$ProcessName" -ErrorAction SilentlyContinue
         }
+    } finally {
+        Unregister-Event -SourceIdentifier $sid -ErrorAction SilentlyContinue
+        Remove-Event      -SourceIdentifier $sid -ErrorAction SilentlyContinue
     }
 }
 
@@ -52,7 +45,6 @@ Write-Host "Waiting for Notes (notepad.exe) to close to start the timer..."
 Wait-ForProcessEvent -ClassName 'Win32_ProcessStopTrace' -ProcessName 'notepad.exe' | Out-Null
 
 $stopwatch.Start()
-$started = $true
 Write-Host ("Timer STARTED at {0:HH:mm:ss.fff}" -f (Get-Date))
 
 # Stop timer when Settings opens
@@ -68,8 +60,6 @@ if (-not (Test-Path $csvPath)) {
     'Participant #, Time to Complete' | Out-File -LiteralPath $csvPath -Encoding UTF8
 }
 
-# Original built "Participant N  –  Elapsed: X seconds (saved to <csv>)"
-# and appended it as a new row. We mirror the row shape: participantNumber,elapsedTime
 "$participantNumber,$elapsedTime" | Out-File -LiteralPath $csvPath -Encoding UTF8 -Append
 
 Write-Host "Saved row -> $csvPath"
