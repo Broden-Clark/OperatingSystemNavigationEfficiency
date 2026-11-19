@@ -5,12 +5,12 @@ Have a notes window with instructions set up. Upon closing the notes window, a t
 
 ## Setup
 
-# Windows:
+### Windows:
 Run this command in PowerShell:
 ```bash
 powershell -ExecutionPolicy Bypass -File .\WindowsSettingTask.ps1
 ```
 
-# Mac: 
+### Mac: 
 Load instructions to notes.
 Compile and run in Script Editor.
