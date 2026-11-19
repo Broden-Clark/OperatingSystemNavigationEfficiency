@@ -1,4 +1,4 @@
-# WindowsSettingTask.ps1
+# WindowsTaskOne.ps1
 # Start timer when "Notes" closes; stop when "Settings" opens.
 
 $scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
