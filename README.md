@@ -10,6 +10,10 @@ PowerShell: Run this command in the folder
 ```bash
 powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
+```bash
+cd "C:\Users\YourName\Desktop\OperatingSystemNavigationEfficiency-main"
+.\WindowsTaskOne.ps1
+```
 
 ### Mac: 
 Load instructions to notes.
