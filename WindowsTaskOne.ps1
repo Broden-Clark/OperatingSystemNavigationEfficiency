@@ -53,7 +53,7 @@ Wait-ForProcessEvent -ClassName 'Win32_ProcessStartTrace' -ProcessName 'SystemSe
 
 $stopwatch.Stop()
 $elapsedTime = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
-Write-Host ("Timer STOPPED at {0:HH:mm:ss.fff}  — elapsed: {1} s" -f (Get-Date), $elapsedTime)
+Write-Host ("Timer STOPPED at {0:HH:mm:ss.fff}  - elapsed: {1} s" -f (Get-Date), $elapsedTime)
 
 # Append the result row
 if (-not (Test-Path $csvPath)) {
@@ -62,4 +62,4 @@ if (-not (Test-Path $csvPath)) {
 
 "$participantNumber,$elapsedTime" | Out-File -LiteralPath $csvPath -Encoding UTF8 -Append
 
-Write-Host "Saved row -> $csvPath"
+Write-Host "Saved row to $csvPath"
