@@ -11,7 +11,7 @@ PowerShell: Run this command in the folder
 powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
 ```bash
-cd "C:\Users\catdu\Desktop\OperatingSystemNavigationEfficiency-main"
+cd "C:\Users\catdu\OneDrive\Desktop\OperatingSystemNavigationEfficiency-main"
 powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
 
