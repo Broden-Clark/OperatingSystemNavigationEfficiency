@@ -6,7 +6,7 @@ Have a notes window with instructions set up. Upon closing the notes window, a t
 ## Setup
 
 ### Windows:
-Run this command in PowerShell:
+PowerShell: Run this command in the folder
 ```bash
 powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
