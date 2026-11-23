@@ -6,8 +6,10 @@ Have a notes window with instructions set up. Upon closing the notes window, a t
 ## Setup
 
 ### Windows:
+Load instructions to notepad.
 PowerShell: Run this command in the folder
 ```bash
+cd "(path to folder)"
 powershell -ExecutionPolicy Bypass -File .\WindowsTaskOne.ps1
 ```
 
