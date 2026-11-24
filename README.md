@@ -24,7 +24,7 @@ Load instructions to notepad.
 PowerShell: Run this command in the folder
 ```bash
 cd "(path to folder)"
-
+powershell -ExecutionPolicy Bypass -File .\WindowsTaskTwo.ps1
 ```
 
 ### Mac:
