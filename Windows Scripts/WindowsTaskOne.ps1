@@ -3,7 +3,8 @@
 # =====================================================================
 
 $scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
-$csvPath      = Join-Path $scriptFolder 'task_one_windows_results.csv'
+$dataFolder   = Join-Path (Split-Path -Parent $scriptFolder) 'Data'
+$csvPath      = Join-Path $dataFolder 'task_one_windows_results.csv'
 $participantNumber = 1
 if (Test-Path $csvPath) {
     $existingContent = Get-Content -LiteralPath $csvPath -ErrorAction SilentlyContinue
