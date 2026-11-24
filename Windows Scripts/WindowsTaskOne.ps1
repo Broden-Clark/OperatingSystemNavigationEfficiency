@@ -1,5 +1,6 @@
-# WindowsTaskOne.ps1
-# Start timer when "Notes" closes; stop when "Settings" opens.
+# =====================================================================
+# WindowsTaskOne.ps1 - Times participant in opening Settings from Notes
+# =====================================================================
 
 $scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
 $csvPath      = Join-Path $scriptFolder 'task_one_windows_results.csv'
