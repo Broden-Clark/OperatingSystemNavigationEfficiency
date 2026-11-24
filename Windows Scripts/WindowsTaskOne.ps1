@@ -2,22 +2,32 @@
 # WindowsTaskOne.ps1 - Times participant in opening Settings from Notes
 # =====================================================================
 
-$scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
-$dataFolder   = Join-Path (Split-Path -Parent $scriptFolder) 'Data'
-$csvPath      = Join-Path $dataFolder 'task_one_windows_results.csv'
-$participantNumber = 1
-if (Test-Path $csvPath) {
-    $existingContent = Get-Content -LiteralPath $csvPath -ErrorAction SilentlyContinue
-    if ($null -ne $existingContent) {
-        $lineCount = @($existingContent).Count
-        $participantNumber = $lineCount   # header counted, same as original
+$ErrorActionPreference = 'Stop'
+
+# --- Paths -------------------------------------------------------------
+$scriptFolder  = $PSScriptRoot
+$projectFolder = Split-Path -Parent $scriptFolder
+$dataFolder    = Join-Path $projectFolder 'Data'
+$csvPath       = Join-Path $dataFolder 'task_one_windows_results.csv'
+
+# --- Helpers -----------------------------------------------------------
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Write-Text {
+    param([string]$Text, [string]$Path, [bool]$Append)
+    if ($Append) {
+        [System.IO.File]::AppendAllText($Path, $Text, $utf8NoBom)
+    } else {
+        [System.IO.File]::WriteAllText($Path, $Text, $utf8NoBom)
     }
 }
 
-Write-Host "Participant #$participantNumber  (CSV: $csvPath)"
-
-# Helpers
-$stopwatch = [System.Diagnostics.Stopwatch]::new()
+function Get-LineCount {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+    # Ignore blank lines so a trailing newline doesn't inflate the count
+    return @(Get-Content -LiteralPath $Path | Where-Object { $_.Trim() -ne '' }).Count
+}
 
 function Wait-ForProcessEvent {
     param(
@@ -42,6 +52,27 @@ function Wait-ForProcessEvent {
     }
 }
 
+# Data folder exists?
+if (-not (Test-Path -LiteralPath $dataFolder)) {
+    New-Item -ItemType Directory -Path $dataFolder -Force | Out-Null
+}
+
+# Create CSV with header
+if (-not (Test-Path -LiteralPath $csvPath)) {
+    Write-Text -Text ("Participant #, Time to Complete`n") -Path $csvPath -Append $false
+}
+
+# Header counts as line 1, so the first participant is #1
+$participantNumber = Get-LineCount -Path $csvPath
+
+Write-Host "Participant #$participantNumber  (CSV: $csvPath)"
+
+# ============================================================
+# TASK
+# ============================================================
+
+$stopwatch = [System.Diagnostics.Stopwatch]::new()
+
 # Start timer when Notes closes
 Write-Host "Waiting for Notes (notepad.exe) to close to start the timer..."
 Wait-ForProcessEvent -ClassName 'Win32_ProcessStopTrace' -ProcessName 'notepad.exe' | Out-Null
@@ -54,14 +85,18 @@ Write-Host "Waiting for Settings (SystemSettings.exe) to open to stop the timer.
 Wait-ForProcessEvent -ClassName 'Win32_ProcessStartTrace' -ProcessName 'SystemSettings.exe' | Out-Null
 
 $stopwatch.Stop()
-$elapsedTime = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
+$elapsedTime = [math]::Round($stopwatch.Elapsed.TotalSeconds, 2)
+
+# Format with exactly 2 decimal places (culture-independent)
+$elapsedTimeStr = $elapsedTime.ToString('F2', [System.Globalization.CultureInfo]::InvariantCulture)
+
 Write-Host ("Timer STOPPED at {0:HH:mm:ss.fff}  - elapsed: {1} s" -f (Get-Date), $elapsedTime)
 
-# Append the result row
-if (-not (Test-Path $csvPath)) {
-    'Participant #, Time to Complete' | Out-File -LiteralPath $csvPath -Encoding UTF8
-}
-
-"$participantNumber,$elapsedTime" | Out-File -LiteralPath $csvPath -Encoding UTF8 -Append
+# Add result row to the CSV
+# Format: "Participant (number), (time)"
+#         "Participant 1, 12.34"
+#         "Participant 2, 5.07"
+$newRow = "Participant $participantNumber, $elapsedTimeStr`n"
+Write-Text -Text $newRow -Path $csvPath -Append $true
 
 Write-Host "Saved row to $csvPath"
